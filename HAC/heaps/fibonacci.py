@@ -1,9 +1,10 @@
 from HAC.tools.nodes import DoublyLinkedNode as Node
 from typing import Any, Union, Generator
+from HAC.heaps.base import BaseHeap
 from math import log
 
 
-class MaxFibonacciHeap:
+class MaxFibonacciHeap(BaseHeap):
 
     """
     Max Fibonacci Heap
@@ -54,14 +55,6 @@ class MaxFibonacciHeap:
         self.__total_nodes += 1
 
         return node
-    
-    @property
-    def find_max(self) -> Node:
-        return self.__max_node
-
-    @property
-    def total_nodes(self):
-        return self.__total_nodes
     
     def increase_value(
             self, 
@@ -170,6 +163,25 @@ class MaxFibonacciHeap:
 
         self.increase_value(node, self.__max_node._value + 1)
         self.pop()
+
+    def iterate(self) -> Generator[Node, None, None]:
+
+        """
+        Iterate over whole heap
+
+        ------------------
+
+        Returns:
+            Node
+        """
+
+        def __iterate(node):
+            for node_ in MaxFibonacciHeap.__iterate(node):
+                yield node_
+                if node_._child is not None:
+                    yield from __iterate(node_._child)
+
+        yield from __iterate(self.__root_list)
 
     @staticmethod
     def __iterate(head: Node) -> Generator[Node, None, None]:
