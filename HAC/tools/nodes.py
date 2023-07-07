@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any, Union, Tuple
 
 
 class BaseNode:
@@ -28,6 +28,10 @@ class BaseNode:
     @property
     def key(self):
         return self._key
+    
+    @key.setter
+    def key(self, value: Any):
+        self._key = value
     
     @property
     def value(self):

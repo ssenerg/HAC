@@ -23,9 +23,9 @@ class MaxFibonacciHeap(BaseHeap):
 
     def __init__(self) -> "MaxFibonacciHeap":
 
-        self.__root_list: Node = None # Pointer to the first node of root
-        self.__max_node: Node = None # Pointer to the head and maximum node
-        self.__total_nodes: int = 0 # Total node count in the Heap
+        self._root_list: Node = None # Pointer to the first node of root
+        self._max_node: Node = None # Pointer to the head and maximum node
+        self._total_nodes: int = 0 # Total node count in the Heap
 
     def push(
             self, 
@@ -49,10 +49,10 @@ class MaxFibonacciHeap(BaseHeap):
         node._left = node._right = node
         self.__merge_with_root_list(node)
 
-        if self.__max_node is None or node._value > self.__max_node._value:
-            self.__max_node = node
+        if self._max_node is None or node._value > self._max_node._value:
+            self._max_node = node
 
-        self.__total_nodes += 1
+        self._total_nodes += 1
 
         return node
     
@@ -82,8 +82,8 @@ class MaxFibonacciHeap(BaseHeap):
             self.__cascading_cut(node_parent)
 
         # Update max node if needed
-        if node._value > self.__max_node._value:
-            self.__max_node = node
+        if node._value > self._max_node._value:
+            self._max_node = node
 
     def merge(
             self, 
@@ -99,19 +99,22 @@ class MaxFibonacciHeap(BaseHeap):
             heap (MaxFibonacciHeap): The heap to merge with this heap
         """
 
+        if heap._root_list is None:
+            return
+
         # Fix pointers when merging the two heaps
-        last = heap.__root_list._left
-        heap.__root_list._left = self.__root_list._left
-        self.__root_list._left._right = heap.__root_list
-        self.__root_list._left = last
-        self.__root_list._left._right = self.__root_list
+        last = heap._root_list._left
+        heap._root_list._left = self._root_list._left
+        self._root_list._left._right = heap._root_list
+        self._root_list._left = last
+        self._root_list._left._right = self._root_list
 
         # Update max node if needed
-        if heap.__max_node._value > self.__max_node._value:
-            self.__max_node = heap.__max_node
+        if heap._max_node._value > self._max_node._value:
+            self._max_node = heap._max_node
 
         # Update total nodes
-        self.__total_nodes += heap.__total_nodes
+        self._total_nodes += heap._total_nodes
 
     def pop(self) -> Union[Node, None]:
 
@@ -124,10 +127,10 @@ class MaxFibonacciHeap(BaseHeap):
             The max node in the heap OR None if heap is empty
         """
         
-        max_node = self.__max_node
+        max_node = self._max_node
         if max_node is None:
             return
-        
+
         if max_node._child is not None:
             # Attach child nodes to root list
             children = [_ for _ in self.__class__.__iterate(max_node._child)]
@@ -138,12 +141,12 @@ class MaxFibonacciHeap(BaseHeap):
 
         # Set new max node in heap
         if max_node == max_node._right:
-            self.__max_node = self.__root_list = None
+            self._max_node = self._root_list = None
         else:
-            self.__max_node = max_node._right
+            self._max_node = max_node._right
             self.__consolidate()
 
-        self.__total_nodes -= 1
+        self._total_nodes -= 1
 
         return max_node
 
@@ -160,8 +163,14 @@ class MaxFibonacciHeap(BaseHeap):
         Params:
             node (Node): The node to delete from the heap
         """
-
-        self.increase_value(node, self.__max_node._value + 1)
+        flag = False
+        for node_ in self.iterate():
+            if node == node_:
+                flag = True
+                break
+        if not flag:
+            print('Node not found in heap')
+        self.increase_value(node, self._max_node._value + 1)
         self.pop()
 
     def iterate(self) -> Generator[Node, None, None]:
@@ -174,14 +183,14 @@ class MaxFibonacciHeap(BaseHeap):
         Returns:
             Node
         """
-
+    
         def __iterate(node):
             for node_ in MaxFibonacciHeap.__iterate(node):
                 yield node_
                 if node_._child is not None:
                     yield from __iterate(node_._child)
 
-        yield from __iterate(self.__root_list)
+        yield from __iterate(self._root_list)
 
     @staticmethod
     def __iterate(head: Node) -> Generator[Node, None, None]:
@@ -198,6 +207,7 @@ class MaxFibonacciHeap(BaseHeap):
         """
         
         node = stop = head
+
         while True:
             yield node
             node = node._right
@@ -253,8 +263,8 @@ class MaxFibonacciHeap(BaseHeap):
         Combine root nodes of equal degree to consolidate the heap
         """
 
-        store = [None] * int(log(self.__total_nodes, (1 + 5 ** .5)/2) + 1)
-        nodes = [_ for _ in self.__class__.__iterate(self.__root_list)]
+        store = [None] * int(log(self._total_nodes, (1 + 5 ** .5)/2) + 1)
+        nodes = [_ for _ in self.__class__.__iterate(self._root_list)]
 
         for node in nodes:
 
@@ -277,8 +287,8 @@ class MaxFibonacciHeap(BaseHeap):
         for node in store:
             if node is None:
                 continue
-            if node._value > self.__max_node._value:
-                self.__max_node = node
+            if node._value > self._max_node._value:
+                self._max_node = node
 
     def __heap_link(
             self, 
@@ -317,13 +327,13 @@ class MaxFibonacciHeap(BaseHeap):
         
         node._parent = None
 
-        if self.__root_list is None:
-            self.__root_list = node
+        if self._root_list is None:
+            self._root_list = node
         else:
-            node._right = self.__root_list._right
-            node._left = self.__root_list
-            self.__root_list._right._left = node
-            self.__root_list._right = node
+            node._right = self._root_list._right
+            node._left = self._root_list
+            self._root_list._right._left = node
+            self._root_list._right = node
 
     @staticmethod
     def __merge_with_child_list(
@@ -367,8 +377,8 @@ class MaxFibonacciHeap(BaseHeap):
             node (Node): The node to remove from the root list
         """
 
-        if node == self.__root_list:
-            self.__root_list = node._right
+        if node == self._root_list:
+            self._root_list = node._right
         node._left._right = node._right
         node._right._left = node._left
 

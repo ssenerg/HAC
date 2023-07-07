@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 class BaseHeap(ABC):
 
     def __init__(self) -> "BaseHeap":
-        self.__max_node: Node = None
-        self.__total_nodes: int = 0
+        self._max_node: Node = None
+        self._total_nodes: int = 0
 
     @abstractmethod
     def push(
@@ -19,11 +19,11 @@ class BaseHeap(ABC):
 
     @property
     def find_max(self) -> Node:
-        return self.__max_node
+        return self._max_node
 
     @property
     def total_nodes(self) -> int:
-        return self.__total_nodes
+        return self._total_nodes
     
     @abstractmethod
     def increase_value(
