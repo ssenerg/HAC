@@ -68,17 +68,27 @@ class Linkage(ABC):
         return list(self.__chain_based_more_components())
 
     def __chain_based_complete_one_component(self):
-        stack = (0, )
-        while self.heaps[stack[-1]].find_max is not None:
-            print(stack)
-            top = stack[-1]
-            best_top = self.heaps[top].find_max.key
-            if len(stack) > 1 and best_top == stack[-2]:
-                stack = stack[:-2]
-                stack = stack + (self.__fast_merge_complete(top, best_top), )
-            else:
-                stack = stack + (best_top, )
-        return self.clusters[stack[-1]]
+        v = 0
+        while v < len(self.clusters):
+            if not self.clusters[v].activate:
+                v += 1
+                continue
+            stack = (v, )
+            flag = False
+            while stack:
+                top = stack[-1]
+                best_top = self.heaps[top].find_max
+                if best_top is None:
+                    flag = True
+                    break
+                best_top = best_top.key
+                if len(stack) > 1 and best_top == stack[-2]:
+                    stack = stack[:-2]
+                    self.__fast_merge_complete(top, best_top)
+                else:
+                    stack = stack + (best_top, )
+            if flag:
+                return self.clusters[v]
     
     def __chain_based_uncomplete_one_component(self):
         stack = (0, )
@@ -113,16 +123,14 @@ class Linkage(ABC):
         del self.hash_tables[key_b][key_a]
         self.heaps[key_a].pop()
         self.heaps[key_b].pop()
-
         intersect_tuple, hash_table_b = self.__t_merge_complete(key_a, key_b)
-        
+
         for c, location_in_a, location_in_b in intersect_tuple:
             self.heaps[key_a].delete_node(location_in_a)
             self.heaps[key_b].delete_node(location_in_b)
 
             similarity = hash_table_b[c][0]
             hash_table_b[c] = (similarity, self.heaps[key_b].push(similarity, c))
-
         self.clusters[key_b].merge(self.clusters[key_a])
         
         for c, _, _ in intersect_tuple:

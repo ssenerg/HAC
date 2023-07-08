@@ -18,7 +18,7 @@ class Cluster:
             self.values: List[int] = []
 
     def __str__(self):
-        return f"[{self.left}, {self.right}]"
+        return f"({self.left},{self.right})"
 
     def merge(self, cluster: "Cluster") -> None:
         cluster.activate = False

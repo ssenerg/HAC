@@ -163,13 +163,7 @@ class MaxFibonacciHeap(BaseHeap):
         Params:
             node (Node): The node to delete from the heap
         """
-        flag = False
-        for node_ in self.iterate():
-            if node == node_:
-                flag = True
-                break
-        if not flag:
-            print('Node not found in heap')
+        
         self.increase_value(node, self._max_node._value + 1)
         self.pop()
 
@@ -183,7 +177,10 @@ class MaxFibonacciHeap(BaseHeap):
         Returns:
             Node
         """
-    
+
+        if self._root_list is None:
+            return
+
         def __iterate(node):
             for node_ in MaxFibonacciHeap.__iterate(node):
                 yield node_
