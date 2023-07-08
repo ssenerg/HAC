@@ -1,14 +1,28 @@
 from HAC.heaps.fibonacci import MaxFibonacciHeap
-from HAC.heaps.base import BaseHeap
+from typing import Tuple, List, Union
 from HAC.tools.cluster import Cluster
 from abc import ABC, abstractmethod
-from typing import Tuple, List
 import numpy as np
 
 
 class Linkage(ABC):
 
-    def __init__(self, similarity: np.ndarray, one_component: bool = True) -> "Linkage":
+    """
+    Linkage
+    ------------------
+
+    This class is Base Fast Linkage class
+
+    Params:
+        similarity (np.ndarray): The similarity matrix
+        one_component (bool): True, if the similarity matrix has one component
+    """
+
+    def __init__(
+            self, 
+            similarity: np.ndarray, 
+            one_component: bool = True
+        ) -> "Linkage":
 
         # Error handling
         if not isinstance(similarity, np.ndarray):
@@ -23,6 +37,8 @@ class Linkage(ABC):
         maximum, minimum = np.nanmax(similarity), np.nanmin(similarity)
         if np.isnan(maximum) or np.isnan(minimum):
             raise ValueError('Similarity matrix is full NaN.')
+        
+        # TODO: Uncomment this
         # if maximum > 1 or minimum < 0:
         #     raise ValueError('Indices of Similarity matrix must between 0 and 1.')
 
@@ -33,13 +49,31 @@ class Linkage(ABC):
         self.similarity = similarity
         self.clusters, self.heaps, self.hash_tables = self.__make_initials()
 
-    def __make_initials(self) -> Tuple[List[Cluster], List[MaxFibonacciHeap], List[dict]]:
+    def __make_initials(
+            self
+        ) -> Tuple[List[Cluster], List[MaxFibonacciHeap], List[dict]]:
+
+        """
+        This function is used to make initial clusters, heaps and hash tables
+        
+        ------------------
+        
+        Returns:
+            clusters (List[Cluster]): The initial clusters
+            heaps (List[MaxFibonacciHeap]): The initial heaps
+            hash_tables (List[dict]): The initial hash tables
+        """
+
         clusters, heaps, hash_tables = [], [], []
+
         if self.complete:
             for i in range(self.similarity.shape[0]):
+
+                # Make initial clusters, heaps and hash tables
                 clusters.append(Cluster(i))
                 heaps.append(MaxFibonacciHeap())
                 hash_tables.append(dict())
+
                 for j in range(self.similarity.shape[1]):
                     if i == j:
                         continue
@@ -48,9 +82,12 @@ class Linkage(ABC):
                     hash_tables[i][j] = (similarity, heap_node)
         else:
             for i in range(self.similarity.shape[0]):
+
+                # Make initial clusters, heaps and hash tables
                 clusters.append(Cluster(i))
                 heaps.append(MaxFibonacciHeap())
                 hash_tables.append(dict())
+
                 for j in range(self.similarity.shape[1]):
                     if i == j:
                         continue
@@ -58,16 +95,42 @@ class Linkage(ABC):
                     if not np.isnan(similarity):
                         heap_node = heaps[i].push(similarity, j)
                         hash_tables[i][j] = (similarity, heap_node)
+
         return clusters, heaps, hash_tables
         
-    def chain_based(self):
+    def chain_based(self) -> Union[Cluster, List[Cluster]]:
+
+        """
+        This function is used to compute the clusters
+        using chain based algorithm
+
+        ------------------
+
+        Returns:
+            Cluster: if the similarity matrix has one component
+            List[Cluster]: if the similarity matrix has more than one component
+
+        """
+
         if self.one_component:
             if self.complete:
                 return self.__chain_based_complete_one_component()
             return self.__chain_based_uncomplete_one_component()
-        return list(self.__chain_based_more_components())
+        return self.__chain_based_more_components()
 
-    def __chain_based_complete_one_component(self):
+    def __chain_based_complete_one_component(self) -> Cluster:
+
+        """
+        This function is used to compute the clusters
+        using chain based algorithm when the similarity matrix
+        has one component and is complete
+        
+        ------------------
+        
+        Returns:
+            Cluster: The final cluster
+        """
+
         v = 0
         while v < len(self.clusters):
             if not self.clusters[v].activate:
@@ -90,7 +153,19 @@ class Linkage(ABC):
             if flag:
                 return self.clusters[v]
     
-    def __chain_based_uncomplete_one_component(self):
+    def __chain_based_uncomplete_one_component(self) -> Cluster:
+
+        """
+        This function is used to compute the clusters
+        using chain based algorithm when the similarity matrix
+        has one component and is uncomplete
+        
+        ------------------
+        
+        Returns:
+            Cluster: The final cluster
+        """
+        
         stack = (0, )
         while self.heaps[stack[-1]].find_max is not None:
             top = stack[-1]
@@ -102,7 +177,19 @@ class Linkage(ABC):
                 stack = stack + (best_top, )
         return self.clusters[stack[-1]]
 
-    def __chain_based_more_components(self):
+    def __chain_based_more_components(self) -> List[Cluster]:
+
+        """
+        This function is used to compute the clusters
+        using chain based algorithm when the similarity matrix
+        has more than one component
+        
+        ------------------
+        
+        Returns:
+            List[Cluster]: The final clusters
+        """
+        
         for v in range(len(self.clusters)):
             if not self.clusters[v].activate:
                 continue
@@ -117,7 +204,22 @@ class Linkage(ABC):
                     stack = stack + (best_top, )
             yield self.clusters[stack[-1]]
 
-    def __fast_merge_complete(self, key_a: int, key_b: int):
+    def __fast_merge_complete(
+            self, 
+            key_a: int, 
+            key_b: int
+        ) -> None:
+
+        """
+        This function is used to merge two clusters
+        when the similarity matrix is complete
+
+        ------------------
+
+        Params:
+            key_a (int): The first cluster key
+            key_b (int): The second cluster key
+        """
 
         del self.hash_tables[key_a][key_b]
         del self.hash_tables[key_b][key_a]
@@ -146,7 +248,23 @@ class Linkage(ABC):
 
         return key_b
 
-    def __fast_merge_uncomplete(self, key_a: int, key_b: int):
+    def __fast_merge_uncomplete(
+            self, 
+            key_a: int, 
+            key_b: int
+        ) -> None:
+
+        """
+        This function is used to merge two clusters
+        when the similarity matrix is uncomplete
+        
+        ------------------
+
+        Params:
+            key_a (int): The first cluster key
+            key_b (int): The second cluster key
+        """
+
         if self.heaps[key_a].total_nodes > self.heaps[key_b].total_nodes:
             key_a, key_b = key_b, key_a
 
@@ -190,8 +308,23 @@ class Linkage(ABC):
 
         return key_b
 
-    def __t_merge_complete(self, key_a: int, key_b: int):
-        # a less than b, b not in q(a) and a not in q(b)
+    def __t_merge_complete(
+            self, 
+            key_a: int, 
+            key_b: int
+        ) -> None:
+
+        """
+        This function is used to merge two clusters
+        when the similarity matrix is complete
+        
+        ------------------
+        
+        Params:
+            key_a (int): The first cluster key
+            key_b (int): The second cluster key
+        """
+
         hash_table_a = self.hash_tables[key_a]
         hash_table_b = self.hash_tables[key_b]
         intersect_tuple = tuple()
@@ -201,8 +334,23 @@ class Linkage(ABC):
             hash_table_b[key] = (similarity, None)
         return intersect_tuple, hash_table_b
 
-    def __t_merge_uncomplete(self, key_a: int, key_b: int):
-        # a less than b
+    def __t_merge_uncomplete(
+            self, 
+            key_a: int, 
+            key_b: int
+        ) -> None:
+
+        """
+        This function is used to merge two clusters
+        when the similarity matrix is uncomplete
+        
+        ------------------
+        
+        Params:
+            key_a (int): The first cluster key
+            key_b (int): The second cluster key
+        """
+        
         hash_table_a = self.hash_tables[key_a]
         hash_table_b = self.hash_tables[key_b]
         intersect_tuple, minus_tuple = tuple(), tuple()
@@ -217,23 +365,96 @@ class Linkage(ABC):
         return intersect_tuple, minus_tuple, hash_table_b
 
     @abstractmethod
-    def _linkage_measure(self, key_a: int, key_b: int, key_c: int) -> float:
+    def _linkage_measure(
+        self, 
+        key_a: int, 
+        key_b: int, 
+        key_c: int
+    ) -> float:
         pass
 
 
 class SingleLinkage(Linkage):
 
-    def _linkage_measure(self, key_a: int, key_b: int, key_c: int) -> float:
+    """
+    Single Linkage
+    ------------------
+    
+    This class is Fast Single Linkage class
+    which it linkage measure returns minimum 
+    similarity between two clusters
+    
+    Params:
+        similarity (np.ndarray): The similarity matrix
+        one_component (bool): True, if the similarity matrix has one component
+    """
+
+    def _linkage_measure(
+            self, 
+            key_a: int, 
+            key_b: int, 
+            key_c: int
+        ) -> float:
+
+        """
+        This function is used to compute the linkage measure
+        between two clusters
+        
+        ------------------
+        
+        Params:
+            key_a (int): The first cluster key
+            key_b (int): The second cluster key
+            key_c (int): The third cluster key which is going 
+            to be merged with the first and second clusters
+        Returns:
+            float: The linkage measure value
+        """
+        
         values_a_b = self.clusters[key_a].values + self.clusters[key_b].values
         values_c = self.clusters[key_c].values
+
         return np.nanmin(self.similarity[values_a_b][:, values_c])
 
 
 class CompleteLinkage(Linkage):
 
-    def _linkage_measure(self, key_a: int, key_b: int, key_c: int) -> float:
+    """
+    Complete Linkage
+    ------------------
+    
+    This class is Fast Complete Linkage class
+    which it linkage measure returns maximum
+    similarity between two clusters
+    
+    Params:
+        similarity (np.ndarray): The similarity matrix
+        one_component (bool): True, if the similarity matrix has one component
+    """
+
+    def _linkage_measure(
+            self, 
+            key_a: int, 
+            key_b: int, 
+            key_c: int
+        ) -> float:
+        
+        """
+        This function is used to compute the linkage measure
+        between two clusters
+        
+        ------------------
+        
+        Params:
+            key_a (int): The first cluster key
+            key_b (int): The second cluster key
+            key_c (int): The third cluster key which is going 
+            to be merged with the first and second clusters
+        Returns:
+            float: The linkage measure value
+        """
+        
         values_a_b = self.clusters[key_a].values + self.clusters[key_b].values
         values_c = self.clusters[key_c].values
+        
         return np.nanmax(self.similarity[values_a_b][:, values_c])
-
-

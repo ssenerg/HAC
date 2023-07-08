@@ -3,6 +3,16 @@ from typing import Union, List
 
 class Cluster:
 
+    """
+    Cluster
+    ------------------
+
+    This class is created to store data of clusters
+
+    Params:
+        value (int): The value of the node
+    """
+
     def __init__(
             self, 
             value: int = None
@@ -21,13 +31,25 @@ class Cluster:
         return f"({self.left},{self.right})"
 
     def merge(self, cluster: "Cluster") -> None:
+
+        """
+        This function is used to merge two clusters
+        
+        ------------------
+
+        Params:
+            cluster (Cluster): The cluster to be merged
+        """
+
         cluster.activate = False
+
         if self.right is None:
             if cluster.right is None:
                 self.right = cluster.left
             else:
                 self.right = cluster
             self.values += cluster.values
+            
         else:
             node = Cluster()
             node.left = self.left
