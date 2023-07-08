@@ -38,9 +38,8 @@ class Linkage(ABC):
         if np.isnan(maximum) or np.isnan(minimum):
             raise ValueError('Similarity matrix is full NaN.')
         
-        # TODO: Uncomment this
-        # if maximum > 1 or minimum < 0:
-        #     raise ValueError('Indices of Similarity matrix must between 0 and 1.')
+        if maximum > 1 or minimum < 0:
+            raise ValueError('Indices of Similarity matrix must between 0 and 1.')
 
         self.complete = False if np.isnan(similarity).any() else True
         self.one_component = one_component
