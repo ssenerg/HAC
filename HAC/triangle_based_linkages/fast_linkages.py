@@ -46,6 +46,7 @@ class Linkage(ABC):
         self.one_component = one_component
         if self.complete:
             self.one_component = True
+        
         self.similarity = similarity
         self.clusters, self.heaps, self.hash_tables = self.__make_initials()
 
@@ -221,32 +222,42 @@ class Linkage(ABC):
             key_b (int): The second cluster key
         """
 
+        # delete the keys from hash tables and heaps
         del self.hash_tables[key_a][key_b]
         del self.hash_tables[key_b][key_a]
         self.heaps[key_a].pop()
         self.heaps[key_b].pop()
+
         intersect_tuple, hash_table_b = self.__t_merge_complete(key_a, key_b)
 
-        for c, location_in_a, location_in_b in intersect_tuple:
+        for key_c, location_in_a, location_in_b in intersect_tuple:
+
             self.heaps[key_a].delete_node(location_in_a)
             self.heaps[key_b].delete_node(location_in_b)
 
-            similarity = hash_table_b[c][0]
-            hash_table_b[c] = (similarity, self.heaps[key_b].push(similarity, c))
+            similarity = hash_table_b[key_c][0]
+            hash_table_b[key_c] = (
+                similarity, 
+                self.heaps[key_b].push(similarity, key_c)
+            )
+
+        # merge the heaps and clusters
         self.clusters[key_b].merge(self.clusters[key_a])
         
-        for c, _, _ in intersect_tuple:
-            hash_table_c = self.hash_tables[c]
-            heap_c = self.heaps[c]
+        for key_c, _, _ in intersect_tuple:
+
+            hash_table_c = self.hash_tables[key_c]
+            heap_c = self.heaps[key_c]
 
             heap_c.delete_node(hash_table_c[key_a][1])
             del hash_table_c[key_a]
 
-            new_similarity = hash_table_b[c][0]
+            new_similarity = hash_table_b[key_c][0]
             heap_c.delete_node(hash_table_c[key_b][1])
-            hash_table_c[key_b] = (new_similarity, heap_c.push(new_similarity, key_b))
-
-        return key_b
+            hash_table_c[key_b] = (
+                new_similarity, 
+                heap_c.push(new_similarity, key_b)
+            )
 
     def __fast_merge_uncomplete(
             self, 
@@ -265,9 +276,11 @@ class Linkage(ABC):
             key_b (int): The second cluster key
         """
 
+        # change the keys if the first cluster has more nodes
         if self.heaps[key_a].total_nodes > self.heaps[key_b].total_nodes:
             key_a, key_b = key_b, key_a
 
+        # delete the keys from hash tables and heaps
         del self.hash_tables[key_a][key_b]
         del self.hash_tables[key_b][key_a]
         self.heaps[key_a].pop()
@@ -275,38 +288,44 @@ class Linkage(ABC):
         
         intersect_tuple, minus_tuple, hash_table_b = self.__t_merge_uncomplete(key_a, key_b)
 
-        for c, location_in_a, location_in_b in intersect_tuple:
+        for key_c, location_in_a, location_in_b in intersect_tuple:
+
             self.heaps[key_a].delete_node(location_in_a)
             self.heaps[key_b].delete_node(location_in_b)
 
-            similarity = hash_table_b[c][0]
-            heap_node = self.heaps[key_b].push(similarity, c)
-            hash_table_b[c] = (similarity, heap_node)
+            similarity = hash_table_b[key_c][0]
+            hash_table_b[key_c] = (
+                similarity, 
+                self.heaps[key_b].push(similarity, key_c)
+            )
             
+        # merge the heaps and clusters
         self.heaps[key_b].merge(self.heaps[key_a])
         self.clusters[key_b].merge(self.clusters[key_a])
 
-        for c in minus_tuple:
-            hash_table_c = self.hash_tables[c]
+        for key_c in minus_tuple:
+
+            hash_table_c = self.hash_tables[key_c]
             similarity, location = hash_table_c[key_a]
             location.key = key_b
+
             del hash_table_c[key_a]
             hash_table_c[key_b] = (similarity, location)
         
-        for c, _, _ in intersect_tuple:
-            hash_table_c = self.hash_tables[c]
-            heap_c = self.heaps[c]
-            location_of_a = hash_table_c[key_a][1]
-            heap_c.delete_node(location_of_a)
+        for key_c, _, _ in intersect_tuple:
+
+            hash_table_c = self.hash_tables[key_c]
+            heap_c = self.heaps[key_c]
+
+            heap_c.delete_node(hash_table_c[key_a][1])
             del hash_table_c[key_a]
 
-            new_similarity = hash_table_b[c][0]
-            last_location_of_b = hash_table_c[key_b][1]
-            heap_c.delete_node(last_location_of_b)
-            new_location_of_b = heap_c.push(new_similarity, key_b)
-            hash_table_c[key_b] = (new_similarity, new_location_of_b)
-
-        return key_b
+            new_similarity = hash_table_b[key_c][0]
+            heap_c.delete_node(hash_table_c[key_b][1])
+            hash_table_c[key_b] = (
+                new_similarity, 
+                heap_c.push(new_similarity, key_b)
+            )
 
     def __t_merge_complete(
             self, 
@@ -327,11 +346,16 @@ class Linkage(ABC):
 
         hash_table_a = self.hash_tables[key_a]
         hash_table_b = self.hash_tables[key_b]
+
         intersect_tuple = tuple()
+        
         for key, value in hash_table_a.items():
+
             similarity = self._linkage_measure(key_a, key_b, key)
-            intersect_tuple = intersect_tuple + ((key, value[1], hash_table_b[key][1]), )
+            intersect_tuple = \
+                intersect_tuple + ((key, value[1], hash_table_b[key][1]), )
             hash_table_b[key] = (similarity, None)
+        
         return intersect_tuple, hash_table_b
 
     def __t_merge_uncomplete(
@@ -353,15 +377,21 @@ class Linkage(ABC):
         
         hash_table_a = self.hash_tables[key_a]
         hash_table_b = self.hash_tables[key_b]
+
         intersect_tuple, minus_tuple = tuple(), tuple()
+
         for key, value in hash_table_a.items():
+
             if key in hash_table_b:
                 similarity = self._linkage_measure(key_a, key_b, key)
-                intersect_tuple = intersect_tuple + ((key, value[1], hash_table_b[key][1]), )
+                intersect_tuple = \
+                    intersect_tuple + ((key, value[1], hash_table_b[key][1]), )
                 hash_table_b[key] = (similarity, None)
+                
             else:
                 hash_table_b[key] = value
                 minus_tuple = minus_tuple + (key, )
+
         return intersect_tuple, minus_tuple, hash_table_b
 
     @abstractmethod
