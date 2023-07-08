@@ -132,27 +132,32 @@ class Linkage(ABC):
             Cluster: The final cluster
         """
 
-        v = 0
-        while v < len(self.clusters):
-            if not self.clusters[v].activate:
-                v += 1
+        cluster_id, length = 0, self.similarity.shape[0]
+
+        while cluster_id < length:
+
+            if not self.clusters[cluster_id].activate:
+                cluster_id += 1
                 continue
-            stack = (v, )
-            flag = False
+
+            stack = (cluster_id, )
+            done = False
+
             while stack:
+
                 top = stack[-1]
-                best_top = self.heaps[top].find_max
-                if best_top is None:
-                    flag = True
+                if self.heaps[top].find_max is None:
+                    done = True
                     break
-                best_top = best_top.key
+                best_top = self.heaps[top].find_max.key
                 if len(stack) > 1 and best_top == stack[-2]:
                     stack = stack[:-2]
                     self.__fast_merge_complete(top, best_top)
                 else:
                     stack = stack + (best_top, )
-            if flag:
-                return self.clusters[v]
+            
+            if done:
+                return self.clusters[cluster_id]
     
     def __chain_based_uncomplete_one_component(self) -> Cluster:
 
@@ -167,16 +172,32 @@ class Linkage(ABC):
             Cluster: The final cluster
         """
         
-        stack = (0, )
-        while self.heaps[stack[-1]].find_max is not None:
-            top = stack[-1]
-            best_top = self.heaps[top].find_max.key
-            if len(stack) > 1 and best_top == stack[-2]:
-                stack = stack[:-2]
-                stack = stack + (self.__fast_merge_uncomplete(top, best_top), )
-            else:
-                stack = stack + (best_top, )
-        return self.clusters[stack[-1]]
+        cluster_id, length = 0, self.similarity.shape[0]
+
+        while cluster_id < length:
+
+            if not self.clusters[cluster_id].activate:
+                cluster_id += 1
+                continue
+
+            stack = (cluster_id, )
+            done = False
+
+            while stack:
+
+                top = stack[-1]
+                if self.heaps[top].find_max is None:
+                    done = True
+                    break
+                best_top = self.heaps[top].find_max.key
+                if len(stack) > 1 and best_top == stack[-2]:
+                    stack = stack[:-2]
+                    self.__fast_merge_uncomplete(top, best_top)
+                else:
+                    stack = stack + (best_top, )
+            
+            if done:
+                return self.clusters[cluster_id]
 
     def __chain_based_more_components(self) -> List[Cluster]:
 
@@ -191,19 +212,32 @@ class Linkage(ABC):
             List[Cluster]: The final clusters
         """
         
-        for v in range(len(self.clusters)):
-            if not self.clusters[v].activate:
+        cluster_id, length = 0, self.similarity.shape[0]
+        final_clusters = []
+
+        while cluster_id < length:
+
+            if not self.clusters[cluster_id].activate:
+                cluster_id += 1
                 continue
-            stack = (v, )
-            while self.heaps[stack[-1]].find_max is not None:
+
+            stack = (cluster_id, )
+
+            while stack:
+
                 top = stack[-1]
+                if self.heaps[top].find_max is None:
+                    final_clusters.append(self.clusters[cluster_id])
+                    cluster_id += 1
+                    break
                 best_top = self.heaps[top].find_max.key
                 if len(stack) > 1 and best_top == stack[-2]:
                     stack = stack[:-2]
-                    stack = stack + (self.__fast_merge_uncomplete(top, best_top), )
+                    self.__fast_merge_uncomplete(top, best_top)
                 else:
                     stack = stack + (best_top, )
-            yield self.clusters[stack[-1]]
+            
+        return final_clusters
 
     def __fast_merge_complete(
             self, 
@@ -387,7 +421,7 @@ class Linkage(ABC):
                 intersect_tuple = \
                     intersect_tuple + ((key, value[1], hash_table_b[key][1]), )
                 hash_table_b[key] = (similarity, None)
-                
+
             else:
                 hash_table_b[key] = value
                 minus_tuple = minus_tuple + (key, )
